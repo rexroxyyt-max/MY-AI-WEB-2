@@ -782,3 +782,24 @@ a {
         max-width: 90%;
     }
 }
+.tool-file {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+}
+
+.tool.active {
+    background: #ffffff;
+    color: #000000;
+    border-color: #ffffff;
+}
+
+#attachmentStatus {
+    max-width: 220px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    color: #8f96a3;
+    font-size: 9px;
+}
