@@ -1,0 +1,77 @@
+<!doctype html>
+<html lang="tr">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>MY AI</title>
+  <meta name="description" content="MY AI — ücretsiz-first AI çalışma alanı.">
+  <link rel="stylesheet" href="./style.css">
+</head>
+<body>
+  <div class="app">
+    <aside class="sidebar">
+      <div class="brand"><div class="logo">⚡</div><div><b>MY AI</b><small>AI Workspace</small></div></div>
+      <button id="newChat" class="new-chat">＋ Yeni sohbet</button>
+      <div class="side-label">SON SOHBETLER</div>
+      <div id="history" class="history"></div>
+      <div class="side-bottom">
+        <div class="free-badge">🟢 FREE ONLY</div>
+        <a href="#download" class="side-link">↓ Uygulamayı İndir</a>
+      </div>
+    </aside>
+
+    <main class="main">
+      <header class="topbar">
+        <div><b>⚡ MY AI</b><span class="online">● Online</span></div>
+        <div class="top-actions">
+          <select id="mode">
+            <option>Auto</option><option>School</option><option>Coding</option>
+            <option>Study</option><option>Research</option><option>General</option>
+          </select>
+          <a href="#download" class="download-btn">İndir</a>
+        </div>
+      </header>
+
+      <section id="messages" class="messages">
+        <div id="welcome" class="welcome">
+          <div class="welcome-logo">⚡</div>
+          <h1>What can I help you with?</h1>
+          <p>School, coding, study, research veya aklına gelen başka bir şey.</p>
+          <div class="prompts">
+            <button data-prompt="Bana bir matematik sorusu sor.">📚 Matematik</button>
+            <button data-prompt="Python ile basit bir program yaz.">💻 Coding</button>
+            <button data-prompt="Bana verimli bir çalışma planı hazırla.">◷ Study</button>
+            <button data-prompt="Yapay zekanın ne olduğunu açıkla.">🔬 Research</button>
+          </div>
+        </div>
+      </section>
+
+      <section class="composer-wrap">
+        <div class="tools">
+          <button type="button" class="tool" disabled>🌐 Web</button>
+          <button type="button" class="tool" disabled>📎 Files</button>
+          <span>FREE MODE</span>
+        </div>
+        <form id="chatForm" class="composer">
+          <textarea id="input" placeholder="MY AI'ya bir şey sor..." rows="1"></textarea>
+          <button id="send" type="submit">↑</button>
+        </form>
+        <div class="hint">Enter gönderir • Shift + Enter yeni satır</div>
+      </section>
+
+      <section id="download" class="download-section">
+        <div class="download-card">
+          <div class="download-icon">⚡</div>
+          <div>
+            <small>WINDOWS APP</small>
+            <h2>MY AI masaüstü uygulaması</h2>
+            <p>İndirme bağlantısını daha sonra buraya ekleyebilirsin.</p>
+            <a href="#" class="download-big">Windows için İndir ↓</a>
+          </div>
+        </div>
+      </section>
+    </main>
+  </div>
+  <script src="./script.js"></script>
+</body>
+</html>
