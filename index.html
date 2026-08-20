@@ -2,7 +2,11 @@
 <html lang="tr">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+    <meta
+        name="viewport"
+        content="width=device-width, initial-scale=1.0"
+    >
 
     <title>MY AI</title>
 
@@ -18,17 +22,30 @@
 
 <div class="site">
 
-    <!-- SIDEBAR -->
+    <!-- =========================
+         SIDEBAR
+         ========================= -->
+
     <aside class="sidebar">
 
         <div class="brand">
-            <div class="brand-icon">⚡</div>
+
+            <div class="brand-icon">
+                ⚡
+            </div>
 
             <div>
-                <div class="brand-title">MY AI</div>
-                <div class="brand-subtitle">AI Workspace</div>
+                <div class="brand-title">
+                    MY AI
+                </div>
+
+                <div class="brand-subtitle">
+                    AI Workspace
+                </div>
             </div>
+
         </div>
+
 
         <button
             id="newChat"
@@ -38,14 +55,17 @@
             ＋ Yeni Sohbet
         </button>
 
+
         <div class="sidebar-label">
             SON SOHBETLER
         </div>
+
 
         <div
             id="history"
             class="history"
         ></div>
+
 
         <div class="sidebar-bottom">
 
@@ -53,11 +73,12 @@
                 🟢 FREE ONLY
             </div>
 
+
             <a
                 class="side-link"
                 href="https://github.com/rexroxyyt-max/MY-AI-WEB-2/releases/download/v1.0.0/MYAI.exe"
             >
-                ⚡ Uygulamayı İndir
+                ⚡ PC Uygulamasını İndir
             </a>
 
         </div>
@@ -65,10 +86,18 @@
     </aside>
 
 
-    <!-- MAIN -->
+
+    <!-- =========================
+         MAIN
+         ========================= -->
+
     <main class="main">
 
-        <!-- TOPBAR -->
+
+        <!-- =====================
+             TOPBAR
+             ===================== -->
+
         <header class="topbar">
 
             <div class="topbar-left">
@@ -84,21 +113,41 @@
 
             </div>
 
+
             <div class="topbar-right">
 
                 <select
                     id="mode"
                     class="mode-select"
                 >
-                    <option value="Auto">Auto</option>
-                    <option value="School">School</option>
-                    <option value="Coding">Coding</option>
-                    <option value="Study">Study</option>
-                    <option value="Research">Research</option>
-                    <option value="General">General</option>
+
+                    <option value="Auto">
+                        Auto
+                    </option>
+
+                    <option value="School">
+                        School
+                    </option>
+
+                    <option value="Coding">
+                        Coding
+                    </option>
+
+                    <option value="Study">
+                        Study
+                    </option>
+
+                    <option value="Research">
+                        Research
+                    </option>
+
+                    <option value="General">
+                        General
+                    </option>
+
                 </select>
 
-                <!-- DIRECT EXE DOWNLOAD -->
+
                 <a
                     class="download-button"
                     href="https://github.com/rexroxyyt-max/MY-AI-WEB-2/releases/download/v1.0.0/MYAI.exe"
@@ -111,7 +160,11 @@
         </header>
 
 
-        <!-- CHAT -->
+
+        <!-- =====================
+             CHAT AREA
+             ===================== -->
+
         <section
             id="messages"
             class="messages"
@@ -126,14 +179,17 @@
                     ⚡
                 </div>
 
+
                 <h1>
                     What can I help you with?
                 </h1>
+
 
                 <p>
                     School, coding, study, research
                     veya aklına gelen başka bir şey.
                 </p>
+
 
                 <div class="prompts">
 
@@ -144,6 +200,7 @@
                         📚 Matematik
                     </button>
 
+
                     <button
                         type="button"
                         data-prompt="Python ile basit bir program yaz."
@@ -151,12 +208,14 @@
                         💻 Coding
                     </button>
 
+
                     <button
                         type="button"
                         data-prompt="Bana verimli bir çalışma planı hazırla."
                     >
                         ◷ Study
                     </button>
+
 
                     <button
                         type="button"
@@ -172,34 +231,72 @@
         </section>
 
 
-        <!-- COMPOSER -->
+
+        <!-- =====================
+             COMPOSER
+             ===================== -->
+
         <section class="composer-wrap">
+
+
+            <!-- TOOLS -->
 
             <div class="tools">
 
-                <button
-                    type="button"
-                    class="tool"
-                    disabled
-                >
-                    🌐 Web
-                </button>
+
+                <!-- WEB SEARCH -->
 
                 <button
                     type="button"
+                    id="webButton"
                     class="tool"
-                    disabled
                 >
+                    🌐 Web Search
+                </button>
+
+
+
+                <!-- FILE -->
+
+                <label class="tool tool-file">
+
                     📎 Files
-                </button>
 
-                <button
-                    type="button"
-                    class="tool"
-                    disabled
-                >
+                    <input
+                        id="fileInput"
+                        type="file"
+                        accept=".pdf,.txt,.md,.json,.csv"
+                        hidden
+                    >
+
+                </label>
+
+
+
+                <!-- IMAGE -->
+
+                <label class="tool tool-file">
+
                     🖼 Image
-                </button>
+
+                    <input
+                        id="imageInput"
+                        type="file"
+                        accept="image/png,image/jpeg,image/webp,image/gif"
+                        hidden
+                    >
+
+                </label>
+
+
+
+                <!-- ATTACHMENT STATUS -->
+
+                <span id="attachmentStatus"></span>
+
+
+
+                <!-- FREE -->
 
                 <span>
                     FREE MODE
@@ -208,10 +305,14 @@
             </div>
 
 
+
+            <!-- INPUT -->
+
             <form
                 id="chatForm"
                 class="composer"
             >
+
 
                 <textarea
                     id="input"
@@ -219,6 +320,7 @@
                     rows="1"
                     autocomplete="off"
                 ></textarea>
+
 
                 <button
                     id="send"
@@ -230,14 +332,20 @@
             </form>
 
 
+
             <div class="hint">
                 Enter gönderir • Shift + Enter yeni satır
             </div>
 
+
         </section>
 
 
-        <!-- DOWNLOAD -->
+
+        <!-- =====================
+             DOWNLOAD SECTION
+             ===================== -->
+
         <section
             id="download"
             class="download-section"
@@ -245,9 +353,11 @@
 
             <div class="download-card">
 
+
                 <div class="download-icon">
                     ⚡
                 </div>
+
 
                 <div>
 
@@ -255,22 +365,25 @@
                         WINDOWS APP
                     </small>
 
+
                     <h2>
                         MY AI masaüstü uygulaması
                     </h2>
 
+
                     <p>
-                        Aynı MY AI deneyimini Windows
+                        MY AI deneyimini Windows
                         uygulaması olarak kullan.
                     </p>
 
-                    <!-- DIRECT EXE DOWNLOAD -->
+
                     <a
                         class="download-big"
                         href="https://github.com/rexroxyyt-max/MY-AI-WEB-2/releases/download/v1.0.0/MYAI.exe"
                     >
                         Windows için İndir ↓
                     </a>
+
 
                     <small class="windows-note">
                         Windows 10 / 11
@@ -286,6 +399,11 @@
 
 </div>
 
+
+
+<!-- =========================
+     SCRIPT
+     ========================= -->
 
 <script src="./script.js"></script>
 
