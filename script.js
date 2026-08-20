@@ -6,21 +6,37 @@ const modeSelect = document.getElementById("mode");
 const historyBox = document.getElementById("history");
 const newChatButton = document.getElementById("newChat");
 
-const STORAGE_KEY = "myai_chats_v1";
+const webButton = document.getElementById("webButton");
+const fileInput = document.getElementById("fileInput");
+const imageInput = document.getElementById("imageInput");
+const attachmentStatus =
+    document.getElementById("attachmentStatus");
+
+const STORAGE_KEY = "myai_chats_v2";
 
 let chats = loadChats();
 let currentChatId = null;
 let sending = false;
 
+let attachment = null;
+let webSearchEnabled = false;
+
+
 function loadChats() {
     try {
-        const raw = localStorage.getItem(STORAGE_KEY);
-        const parsed = raw ? JSON.parse(raw) : [];
-        return Array.isArray(parsed) ? parsed : [];
+        const data =
+            JSON.parse(
+                localStorage.getItem(STORAGE_KEY) || "[]"
+            );
+
+        return Array.isArray(data)
+            ? data
+            : [];
     } catch {
         return [];
     }
 }
+
 
 function saveChats() {
     localStorage.setItem(
@@ -29,24 +45,29 @@ function saveChats() {
     );
 }
 
+
 function getCurrentChat() {
     return chats.find(
         chat => chat.id === currentChatId
     );
 }
 
+
 function createChat() {
     const chat = {
         id:
             Date.now().toString() +
             Math.random().toString(16).slice(2),
+
         title: "Yeni sohbet",
+
         messages: [],
-        createdAt: Date.now(),
+
         updatedAt: Date.now()
     };
 
-    chats.push(chat);
+    chats.unshift(chat);
+
     currentChatId = chat.id;
 
     saveChats();
@@ -56,41 +77,28 @@ function createChat() {
     return chat;
 }
 
-function deleteChat(id) {
-    chats = chats.filter(
-        chat => chat.id !== id
-    );
 
-    saveChats();
+function escapeHtml(text) {
+    const div =
+        document.createElement("div");
 
-    if (currentChatId === id) {
-        if (chats.length > 0) {
-            const latest =
-                [...chats].sort(
-                    (a, b) =>
-                        b.updatedAt - a.updatedAt
-                )[0];
+    div.textContent =
+        String(text);
 
-            currentChatId = latest.id;
-            renderChat();
-        } else {
-            createChat();
-        }
-    }
-
-    renderHistory();
+    return div.innerHTML;
 }
+
 
 function renderHistory() {
     historyBox.innerHTML = "";
 
-    const sorted =
-        [...chats].sort(
-            (a, b) =>
-                b.updatedAt - a.updatedAt
-        );
+    const sorted = [...chats].sort(
+        (a, b) =>
+            b.updatedAt - a.updatedAt
+    );
 
     for (const chat of sorted) {
+
         const row =
             document.createElement("div");
 
@@ -106,26 +114,42 @@ function renderHistory() {
             document.createElement("span");
 
         title.textContent =
-            chat.title || "Yeni sohbet";
+            chat.title;
 
         const deleteButton =
             document.createElement("button");
 
-        deleteButton.type = "button";
-        deleteButton.textContent = "×";
-
-        deleteButton.title =
-            "Sohbeti sil";
-
         deleteButton.className =
             "history-delete";
+
+        deleteButton.textContent = "×";
 
         deleteButton.addEventListener(
             "click",
             event => {
                 event.stopPropagation();
 
-                deleteChat(chat.id);
+                chats =
+                    chats.filter(
+                        item =>
+                            item.id !== chat.id
+                    );
+
+                if (
+                    currentChatId === chat.id
+                ) {
+                    currentChatId =
+                        chats[0]?.id || null;
+                }
+
+                saveChats();
+
+                if (!currentChatId) {
+                    createChat();
+                } else {
+                    renderHistory();
+                    renderChat();
+                }
             }
         );
 
@@ -135,7 +159,8 @@ function renderHistory() {
         row.addEventListener(
             "click",
             () => {
-                currentChatId = chat.id;
+                currentChatId =
+                    chat.id;
 
                 renderHistory();
                 renderChat();
@@ -148,21 +173,57 @@ function renderHistory() {
     }
 }
 
+
+function renderChat() {
+
+    const chat =
+        getCurrentChat();
+
+    if (
+        !chat ||
+        chat.messages.length === 0
+    ) {
+        renderWelcome();
+        return;
+    }
+
+    messages.innerHTML = "";
+
+    for (
+        const message
+        of chat.messages
+    ) {
+        renderMessage(
+            message.role,
+            message.content
+        );
+    }
+
+    messages.scrollTop =
+        messages.scrollHeight;
+}
+
+
 function renderWelcome() {
+
     messages.innerHTML = `
         <div class="welcome" id="welcome">
-            <div class="welcome-logo">⚡</div>
+
+            <div class="welcome-logo">
+                ⚡
+            </div>
 
             <h1>
                 What can I help you with?
             </h1>
 
             <p>
-                School, coding, study, research
-                veya aklına gelen başka bir şey.
+                School, coding, study,
+                research veya aklına gelen başka bir şey.
             </p>
 
             <div class="prompts">
+
                 <button
                     type="button"
                     data-prompt="Bana bir matematik sorusu sor."
@@ -190,6 +251,7 @@ function renderWelcome() {
                 >
                     🔬 Research
                 </button>
+
             </div>
         </div>
     `;
@@ -197,81 +259,66 @@ function renderWelcome() {
     connectPromptButtons();
 }
 
-function renderChat() {
-    const chat = getCurrentChat();
 
-    if (!chat || chat.messages.length === 0) {
-        renderWelcome();
-        return;
-    }
-
-    messages.innerHTML = "";
-
-    for (const message of chat.messages) {
-        renderMessage(
-            message.role,
-            message.content
-        );
-    }
-
-    messages.scrollTop =
-        messages.scrollHeight;
-}
-
-function renderMessage(role, content) {
-    const element =
+function renderMessage(
+    role,
+    content
+) {
+    const message =
         document.createElement("div");
 
-    element.className =
+    message.className =
         role === "user"
             ? "message user"
             : "message ai";
 
-    element.innerHTML = `
+    message.innerHTML = `
         <div class="message-title">
-            ${role === "user"
-                ? "You"
-                : "⚡ MY AI"}
+            ${
+                role === "user"
+                    ? "You"
+                    : "⚡ MY AI"
+            }
         </div>
 
         <div class="message-content">
-            ${escapeHtml(content)
-                .replace(/\n/g, "<br>")}
+            ${
+                escapeHtml(content)
+                    .replace(/\n/g, "<br>")
+            }
         </div>
     `;
 
-    messages.appendChild(element);
+    messages.appendChild(message);
 }
 
-function escapeHtml(text) {
-    const div =
-        document.createElement("div");
 
-    div.textContent =
-        String(text);
+function addMessage(
+    role,
+    content
+) {
+    const chat =
+        getCurrentChat();
 
-    return div.innerHTML;
-}
-
-function addMessage(role, content) {
-    const chat = getCurrentChat();
-
-    if (!chat) return;
+    if (!chat) {
+        return;
+    }
 
     chat.messages.push({
         role,
         content
     });
 
-    chat.updatedAt = Date.now();
+    chat.updatedAt =
+        Date.now();
 
     if (
         role === "user" &&
         chat.title === "Yeni sohbet"
     ) {
         chat.title =
-            content.length > 36
-                ? content.slice(0, 36) + "..."
+            content.length > 40
+                ? content.slice(0, 40) + "..."
                 : content;
     }
 
@@ -288,7 +335,9 @@ function addMessage(role, content) {
         messages.scrollHeight;
 }
 
+
 function showLoading() {
+
     const loading =
         document.createElement("div");
 
@@ -308,13 +357,17 @@ function showLoading() {
         </div>
     `;
 
-    messages.appendChild(loading);
+    messages.appendChild(
+        loading
+    );
 
     messages.scrollTop =
         messages.scrollHeight;
 }
 
+
 function hideLoading() {
+
     document
         .getElementById(
             "ai-loading"
@@ -322,43 +375,214 @@ function hideLoading() {
         ?.remove();
 }
 
-async function sendToAI(text) {
-    if (sending) return;
 
-    let chat = getCurrentChat();
+function fileToBase64(file) {
+
+    return new Promise(
+        (resolve, reject) => {
+
+            const reader =
+                new FileReader();
+
+            reader.onload = () => {
+
+                const result =
+                    String(reader.result);
+
+                resolve(result);
+            };
+
+            reader.onerror =
+                reject;
+
+            reader.readAsDataURL(
+                file
+            );
+        }
+    );
+}
+
+
+async function prepareFile(file) {
+
+    if (!file) {
+        return;
+    }
+
+    if (file.size > 4 * 1024 * 1024) {
+
+        alert(
+            "Şimdilik 4 MB'dan küçük dosyalar kullan."
+        );
+
+        return;
+    }
+
+    const dataUrl =
+        await fileToBase64(file);
+
+    attachment = {
+        name: file.name,
+        type: file.type,
+        data: dataUrl
+    };
+
+    attachmentStatus.textContent =
+        `📎 ${file.name}`;
+
+    input.focus();
+}
+
+
+webButton.addEventListener(
+    "click",
+    () => {
+
+        webSearchEnabled =
+            !webSearchEnabled;
+
+        webButton.classList.toggle(
+            "active",
+            webSearchEnabled
+        );
+
+        webButton.textContent =
+            webSearchEnabled
+                ? "🌐 Web Açık"
+                : "🌐 Web Search";
+
+        input.focus();
+    }
+);
+
+
+fileInput.addEventListener(
+    "change",
+    async () => {
+
+        await prepareFile(
+            fileInput.files?.[0]
+        );
+
+        fileInput.value = "";
+    }
+);
+
+
+imageInput.addEventListener(
+    "change",
+    async () => {
+
+        const file =
+            imageInput.files?.[0];
+
+        if (!file) {
+            return;
+        }
+
+        if (file.size > 4 * 1024 * 1024) {
+
+            alert(
+                "Şimdilik 4 MB'dan küçük görseller kullan."
+            );
+
+            return;
+        }
+
+        const dataUrl =
+            await fileToBase64(file);
+
+        attachment = {
+            name: file.name,
+            type: file.type,
+            data: dataUrl,
+            image: true
+        };
+
+        attachmentStatus.textContent =
+            `🖼 ${file.name}`;
+
+        input.focus();
+    }
+);
+
+
+function clearAttachment() {
+
+    attachment = null;
+
+    attachmentStatus.textContent =
+        "";
+}
+
+
+async function sendToAI(text) {
+
+    if (sending) {
+        return;
+    }
+
+    let chat =
+        getCurrentChat();
 
     if (!chat) {
-        chat = createChat();
+        chat =
+            createChat();
     }
+
+    const userText =
+        attachment
+            ? `${text}\n\n[Ek: ${attachment.name}]`
+            : text;
 
     addMessage(
         "user",
-        text
+        userText
     );
 
     showLoading();
 
     sending = true;
-    sendButton.disabled = true;
-    sendButton.textContent = "...";
+
+    sendButton.disabled =
+        true;
+
+    sendButton.textContent =
+        "...";
 
     try {
+
         const response =
-            await fetch("/api/chat", {
-                method: "POST",
-                headers: {
-                    "Content-Type":
-                        "application/json"
-                },
-                body: JSON.stringify({
-                    message: text,
-                    history:
-                        chat.messages
-                            .slice(-20),
-                    mode:
-                        modeSelect.value
-                })
-            });
+            await fetch(
+                "/api/chat",
+                {
+                    method: "POST",
+
+                    headers: {
+                        "Content-Type":
+                            "application/json"
+                    },
+
+                    body:
+                        JSON.stringify({
+                            message: text,
+
+                            history:
+                                chat.messages.slice(
+                                    -20
+                                ),
+
+                            mode:
+                                modeSelect.value,
+
+                            webSearch:
+                                webSearchEnabled,
+
+                            attachment:
+                                attachment
+                        })
+                }
+            );
 
         const contentType =
             response.headers.get(
@@ -372,9 +596,12 @@ async function sendToAI(text) {
                 "application/json"
             )
         ) {
+
             data =
                 await response.json();
+
         } else {
+
             const raw =
                 await response.text();
 
@@ -385,6 +612,7 @@ async function sendToAI(text) {
         }
 
         if (!response.ok) {
+
             throw new Error(
                 data.error ||
                 `HTTP ${response.status}`
@@ -398,7 +626,10 @@ async function sendToAI(text) {
             data.answer
         );
 
+        clearAttachment();
+
     } catch (error) {
+
         hideLoading();
 
         addMessage(
@@ -410,42 +641,54 @@ async function sendToAI(text) {
                     : "Bilinmeyen hata."
             )
         );
+
     } finally {
+
         sending = false;
-        sendButton.disabled = false;
-        sendButton.textContent = "↑";
+
+        sendButton.disabled =
+            false;
+
+        sendButton.textContent =
+            "↑";
+
         input.focus();
     }
 }
 
-function startNewChat() {
-    createChat();
-    input.value = "";
-    input.focus();
-}
 
 function connectPromptButtons() {
-    document
-        .querySelectorAll("[data-prompt]")
-        .forEach(button => {
-            button.onclick = () => {
-                input.value =
-                    button.dataset.prompt;
 
-                input.focus();
-            };
+    document
+        .querySelectorAll(
+            "[data-prompt]"
+        )
+        .forEach(button => {
+
+            button.onclick =
+                () => {
+
+                    input.value =
+                        button.dataset.prompt;
+
+                    input.focus();
+                };
         });
 }
+
 
 form.addEventListener(
     "submit",
     event => {
+
         event.preventDefault();
 
         const text =
             input.value.trim();
 
-        if (!text) return;
+        if (!text) {
+            return;
+        }
 
         input.value = "";
 
@@ -453,13 +696,16 @@ form.addEventListener(
     }
 );
 
+
 input.addEventListener(
     "keydown",
     event => {
+
         if (
             event.key === "Enter" &&
             !event.shiftKey
         ) {
+
             event.preventDefault();
 
             form.requestSubmit();
@@ -467,19 +713,27 @@ input.addEventListener(
     }
 );
 
+
 newChatButton.addEventListener(
     "click",
-    startNewChat
+    () => {
+        createChat();
+
+        clearAttachment();
+
+        input.value = "";
+
+        input.focus();
+    }
 );
+
 
 if (chats.length === 0) {
     createChat();
 } else {
+
     currentChatId =
-        [...chats].sort(
-            (a, b) =>
-                b.updatedAt - a.updatedAt
-        )[0].id;
+        chats[0].id;
 
     renderHistory();
     renderChat();
