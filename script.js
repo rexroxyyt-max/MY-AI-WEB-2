@@ -6,208 +6,135 @@ const modeSelect = document.getElementById("mode");
 const historyBox = document.getElementById("history");
 const newChatButton = document.getElementById("newChat");
 
-const webButton = document.getElementById("webButton");
-const fileInput = document.getElementById("fileInput");
-const imageInput = document.getElementById("imageInput");
-const attachmentStatus =
-    document.getElementById("attachmentStatus");
-
-const STORAGE_KEY = "myai_chats_v2";
-
-let chats = loadChats();
-let currentChatId = null;
+let chatHistory = [];
 let sending = false;
 
-let attachment = null;
-let webSearchEnabled = false;
 
-
-function loadChats() {
-    try {
-        const data =
-            JSON.parse(
-                localStorage.getItem(STORAGE_KEY) || "[]"
-            );
-
-        return Array.isArray(data)
-            ? data
-            : [];
-    } catch {
-        return [];
-    }
-}
-
-
-function saveChats() {
-    localStorage.setItem(
-        STORAGE_KEY,
-        JSON.stringify(chats)
-    );
-}
-
-
-function getCurrentChat() {
-    return chats.find(
-        chat => chat.id === currentChatId
-    );
-}
-
-
-function createChat() {
-    const chat = {
-        id:
-            Date.now().toString() +
-            Math.random().toString(16).slice(2),
-
-        title: "Yeni sohbet",
-
-        messages: [],
-
-        updatedAt: Date.now()
-    };
-
-    chats.unshift(chat);
-
-    currentChatId = chat.id;
-
-    saveChats();
-    renderHistory();
-    renderChat();
-
-    return chat;
-}
-
+// ============================================================
+// HTML GÜVENLİĞİ
+// ============================================================
 
 function escapeHtml(text) {
-    const div =
-        document.createElement("div");
-
-    div.textContent =
-        String(text);
-
+    const div = document.createElement("div");
+    div.textContent = String(text);
     return div.innerHTML;
 }
 
 
-function renderHistory() {
-    historyBox.innerHTML = "";
+// ============================================================
+// MESAJ
+// ============================================================
 
-    const sorted = [...chats].sort(
-        (a, b) =>
-            b.updatedAt - a.updatedAt
-    );
+function addMessage(role, text) {
 
-    for (const chat of sorted) {
+    const welcome =
+        document.getElementById("welcome");
 
-        const row =
-            document.createElement("div");
+    if (welcome) {
+        welcome.remove();
+    }
 
-        row.className =
-            "history-item" +
-            (
-                chat.id === currentChatId
-                    ? " active"
-                    : ""
-            );
+    const message =
+        document.createElement("div");
 
-        const title =
-            document.createElement("span");
+    message.className =
+        role === "user"
+            ? "message user"
+            : "message ai";
 
-        title.textContent =
-            chat.title;
-
-        const deleteButton =
-            document.createElement("button");
-
-        deleteButton.className =
-            "history-delete";
-
-        deleteButton.textContent = "×";
-
-        deleteButton.addEventListener(
-            "click",
-            event => {
-                event.stopPropagation();
-
-                chats =
-                    chats.filter(
-                        item =>
-                            item.id !== chat.id
-                    );
-
-                if (
-                    currentChatId === chat.id
-                ) {
-                    currentChatId =
-                        chats[0]?.id || null;
-                }
-
-                saveChats();
-
-                if (!currentChatId) {
-                    createChat();
-                } else {
-                    renderHistory();
-                    renderChat();
-                }
+    message.innerHTML = `
+        <div class="message-title">
+            ${
+                role === "user"
+                    ? "You"
+                    : "⚡ MY AI"
             }
-        );
+        </div>
 
-        row.appendChild(title);
-        row.appendChild(deleteButton);
-
-        row.addEventListener(
-            "click",
-            () => {
-                currentChatId =
-                    chat.id;
-
-                renderHistory();
-                renderChat();
-
-                input.focus();
+        <div class="message-content">
+            ${
+                escapeHtml(text)
+                    .replace(/\n/g, "<br>")
             }
-        );
+        </div>
+    `;
 
-        historyBox.appendChild(row);
-    }
-}
-
-
-function renderChat() {
-
-    const chat =
-        getCurrentChat();
-
-    if (
-        !chat ||
-        chat.messages.length === 0
-    ) {
-        renderWelcome();
-        return;
-    }
-
-    messages.innerHTML = "";
-
-    for (
-        const message
-        of chat.messages
-    ) {
-        renderMessage(
-            message.role,
-            message.content
-        );
-    }
+    messages.appendChild(message);
 
     messages.scrollTop =
         messages.scrollHeight;
 }
 
 
-function renderWelcome() {
+// ============================================================
+// LOADING
+// ============================================================
+
+function showLoading() {
+
+    const old =
+        document.getElementById(
+            "ai-loading"
+        );
+
+    if (old) {
+        old.remove();
+    }
+
+    const loading =
+        document.createElement("div");
+
+    loading.id =
+        "ai-loading";
+
+    loading.className =
+        "message ai";
+
+    loading.innerHTML = `
+        <div class="message-title">
+            ⚡ MY AI
+        </div>
+
+        <div class="message-content">
+            Düşünüyor...
+        </div>
+    `;
+
+    messages.appendChild(
+        loading
+    );
+
+    messages.scrollTop =
+        messages.scrollHeight;
+}
+
+
+function hideLoading() {
+
+    const loading =
+        document.getElementById(
+            "ai-loading"
+        );
+
+    if (loading) {
+        loading.remove();
+    }
+}
+
+
+// ============================================================
+// YENİ SOHBET
+// ============================================================
+
+function startNewChat() {
+
+    chatHistory = [];
 
     messages.innerHTML = `
-        <div class="welcome" id="welcome">
+        <div
+            class="welcome"
+            id="welcome"
+        >
 
             <div class="welcome-logo">
                 ⚡
@@ -218,8 +145,8 @@ function renderWelcome() {
             </h1>
 
             <p>
-                School, coding, study,
-                research veya aklına gelen başka bir şey.
+                School, coding, study, research
+                veya aklına gelen başka bir şey.
             </p>
 
             <div class="prompts">
@@ -253,268 +180,92 @@ function renderWelcome() {
                 </button>
 
             </div>
+
         </div>
     `;
+
+    historyBox.innerHTML = "";
 
     connectPromptButtons();
+
+    input.value = "";
+
+    input.focus();
+
+    resetSendButton();
 }
 
 
-function renderMessage(
-    role,
-    content
-) {
-    const message =
-        document.createElement("div");
+// ============================================================
+// HIZLI PROMPTLAR
+// ============================================================
 
-    message.className =
-        role === "user"
-            ? "message user"
-            : "message ai";
-
-    message.innerHTML = `
-        <div class="message-title">
-            ${
-                role === "user"
-                    ? "You"
-                    : "⚡ MY AI"
-            }
-        </div>
-
-        <div class="message-content">
-            ${
-                escapeHtml(content)
-                    .replace(/\n/g, "<br>")
-            }
-        </div>
-    `;
-
-    messages.appendChild(message);
-}
-
-
-function addMessage(
-    role,
-    content
-) {
-    const chat =
-        getCurrentChat();
-
-    if (!chat) {
-        return;
-    }
-
-    chat.messages.push({
-        role,
-        content
-    });
-
-    chat.updatedAt =
-        Date.now();
-
-    if (
-        role === "user" &&
-        chat.title === "Yeni sohbet"
-    ) {
-        chat.title =
-            content.length > 40
-                ? content.slice(0, 40) + "..."
-                : content;
-    }
-
-    saveChats();
-
-    renderMessage(
-        role,
-        content
-    );
-
-    renderHistory();
-
-    messages.scrollTop =
-        messages.scrollHeight;
-}
-
-
-function showLoading() {
-
-    const loading =
-        document.createElement("div");
-
-    loading.id =
-        "ai-loading";
-
-    loading.className =
-        "message ai";
-
-    loading.innerHTML = `
-        <div class="message-title">
-            ⚡ MY AI
-        </div>
-
-        <div class="message-content">
-            Düşünüyor...
-        </div>
-    `;
-
-    messages.appendChild(
-        loading
-    );
-
-    messages.scrollTop =
-        messages.scrollHeight;
-}
-
-
-function hideLoading() {
+function connectPromptButtons() {
 
     document
-        .getElementById(
-            "ai-loading"
+        .querySelectorAll(
+            "[data-prompt]"
         )
-        ?.remove();
-}
+        .forEach(button => {
 
+            button.addEventListener(
+                "click",
+                () => {
 
-function fileToBase64(file) {
+                    input.value =
+                        button.dataset.prompt;
 
-    return new Promise(
-        (resolve, reject) => {
+                    input.focus();
 
-            const reader =
-                new FileReader();
-
-            reader.onload = () => {
-
-                const result =
-                    String(reader.result);
-
-                resolve(result);
-            };
-
-            reader.onerror =
-                reject;
-
-            reader.readAsDataURL(
-                file
+                }
             );
-        }
-    );
+
+        });
 }
 
 
-async function prepareFile(file) {
+// ============================================================
+// GEÇMİŞ
+// ============================================================
 
-    if (!file) {
-        return;
-    }
+function addHistory(text) {
 
-    if (file.size > 4 * 1024 * 1024) {
+    const item =
+        document.createElement("div");
 
-        alert(
-            "Şimdilik 4 MB'dan küçük dosyalar kullan."
-        );
+    item.className =
+        "history-item";
 
-        return;
-    }
+    item.textContent =
+        text.length > 42
+            ? text.slice(0, 42) + "..."
+            : text;
 
-    const dataUrl =
-        await fileToBase64(file);
+    historyBox.prepend(item);
+}
 
-    attachment = {
-        name: file.name,
-        type: file.type,
-        data: dataUrl
-    };
 
-    attachmentStatus.textContent =
-        `📎 ${file.name}`;
+// ============================================================
+// BUTON RESET
+// ============================================================
+
+function resetSendButton() {
+
+    sending = false;
+
+    sendButton.disabled = false;
+
+    sendButton.textContent = "↑";
+
+    input.disabled = false;
 
     input.focus();
 }
 
 
-webButton.addEventListener(
-    "click",
-    () => {
-
-        webSearchEnabled =
-            !webSearchEnabled;
-
-        webButton.classList.toggle(
-            "active",
-            webSearchEnabled
-        );
-
-        webButton.textContent =
-            webSearchEnabled
-                ? "🌐 Web Açık"
-                : "🌐 Web Search";
-
-        input.focus();
-    }
-);
-
-
-fileInput.addEventListener(
-    "change",
-    async () => {
-
-        await prepareFile(
-            fileInput.files?.[0]
-        );
-
-        fileInput.value = "";
-    }
-);
-
-
-imageInput.addEventListener(
-    "change",
-    async () => {
-
-        const file =
-            imageInput.files?.[0];
-
-        if (!file) {
-            return;
-        }
-
-        if (file.size > 4 * 1024 * 1024) {
-
-            alert(
-                "Şimdilik 4 MB'dan küçük görseller kullan."
-            );
-
-            return;
-        }
-
-        const dataUrl =
-            await fileToBase64(file);
-
-        attachment = {
-            name: file.name,
-            type: file.type,
-            data: dataUrl,
-            image: true
-        };
-
-        attachmentStatus.textContent =
-            `🖼 ${file.name}`;
-
-        input.focus();
-    }
-);
-
-
-function clearAttachment() {
-
-    attachment = null;
-
-    attachmentStatus.textContent =
-        "";
-}
-
+// ============================================================
+// AI'YA GÖNDER
+// ============================================================
 
 async function sendToAI(text) {
 
@@ -522,33 +273,36 @@ async function sendToAI(text) {
         return;
     }
 
-    let chat =
-        getCurrentChat();
+    const cleanText =
+        String(text || "").trim();
 
-    if (!chat) {
-        chat =
-            createChat();
+    if (!cleanText) {
+        return;
     }
-
-    const userText =
-        attachment
-            ? `${text}\n\n[Ek: ${attachment.name}]`
-            : text;
-
-    addMessage(
-        "user",
-        userText
-    );
-
-    showLoading();
 
     sending = true;
 
-    sendButton.disabled =
-        true;
+    input.disabled = true;
 
-    sendButton.textContent =
-        "...";
+    sendButton.disabled = true;
+
+    sendButton.textContent = "...";
+
+    addMessage(
+        "user",
+        cleanText
+    );
+
+    chatHistory.push({
+        role: "user",
+        content: cleanText
+    });
+
+    addHistory(
+        cleanText
+    );
+
+    showLoading();
 
     try {
 
@@ -560,77 +314,96 @@ async function sendToAI(text) {
 
                     headers: {
                         "Content-Type":
+                            "application/json",
+
+                        "Accept":
                             "application/json"
                     },
 
                     body:
                         JSON.stringify({
-                            message: text,
+                            message:
+                                cleanText,
 
                             history:
-                                chat.messages.slice(
+                                chatHistory.slice(
                                     -20
                                 ),
 
                             mode:
-                                modeSelect.value,
-
-                            webSearch:
-                                webSearchEnabled,
-
-                            attachment:
-                                attachment
+                                modeSelect.value
                         })
                 }
             );
 
+
         const contentType =
-            response.headers.get(
-                "content-type"
-            ) || "";
+            (
+                response.headers.get(
+                    "content-type"
+                ) || ""
+            ).toLowerCase();
 
-        let data;
 
-        if (
-            contentType.includes(
-                "application/json"
-            )
-        ) {
-
-            data =
-                await response.json();
-
-        } else {
+        if (!contentType.includes(
+            "application/json"
+        )) {
 
             const raw =
                 await response.text();
 
             throw new Error(
                 raw ||
-                "Sunucudan geçersiz cevap geldi."
+                "Sunucudan JSON yerine farklı bir cevap geldi."
             );
         }
+
+
+        const data =
+            await response.json();
+
 
         if (!response.ok) {
 
             throw new Error(
-                data.error ||
+                data?.error ||
                 `HTTP ${response.status}`
             );
         }
 
+
+        if (
+            !data ||
+            typeof data.answer !==
+                "string" ||
+            !data.answer.trim()
+        ) {
+
+            throw new Error(
+                "AI boş cevap döndürdü."
+            );
+        }
+
+
         hideLoading();
+
 
         addMessage(
             "assistant",
             data.answer
         );
 
-        clearAttachment();
+
+        chatHistory.push({
+            role: "assistant",
+            content: data.answer
+        });
+
 
     } catch (error) {
 
         hideLoading();
+
 
         addMessage(
             "assistant",
@@ -642,99 +415,173 @@ async function sendToAI(text) {
             )
         );
 
+
+        console.error(
+            "MY AI ERROR:",
+            error
+        );
+
+
     } finally {
 
-        sending = false;
-
-        sendButton.disabled =
-            false;
-
-        sendButton.textContent =
-            "↑";
-
-        input.focus();
+        resetSendButton();
     }
 }
 
 
-function connectPromptButtons() {
+// ============================================================
+// FORM GÖNDERİMİ
+// ============================================================
 
-    document
-        .querySelectorAll(
-            "[data-prompt]"
-        )
-        .forEach(button => {
+if (form) {
 
-            button.onclick =
-                () => {
-
-                    input.value =
-                        button.dataset.prompt;
-
-                    input.focus();
-                };
-        });
-}
-
-
-form.addEventListener(
-    "submit",
-    event => {
-
-        event.preventDefault();
-
-        const text =
-            input.value.trim();
-
-        if (!text) {
-            return;
-        }
-
-        input.value = "";
-
-        sendToAI(text);
-    }
-);
-
-
-input.addEventListener(
-    "keydown",
-    event => {
-
-        if (
-            event.key === "Enter" &&
-            !event.shiftKey
-        ) {
+    form.addEventListener(
+        "submit",
+        event => {
 
             event.preventDefault();
 
-            form.requestSubmit();
+            event.stopPropagation();
+
+            if (sending) {
+                return;
+            }
+
+            const text =
+                input.value.trim();
+
+            if (!text) {
+                input.focus();
+                return;
+            }
+
+            input.value = "";
+
+            sendToAI(text);
         }
-    }
-);
+    );
 
-
-newChatButton.addEventListener(
-    "click",
-    () => {
-        createChat();
-
-        clearAttachment();
-
-        input.value = "";
-
-        input.focus();
-    }
-);
-
-
-if (chats.length === 0) {
-    createChat();
-} else {
-
-    currentChatId =
-        chats[0].id;
-
-    renderHistory();
-    renderChat();
 }
+
+
+// ============================================================
+// ENTER / SHIFT+ENTER
+// ============================================================
+
+if (input) {
+
+    input.addEventListener(
+        "keydown",
+        event => {
+
+            if (
+                event.key !==
+                "Enter"
+            ) {
+                return;
+            }
+
+
+            // Shift + Enter:
+            // Yeni satır bırak.
+            if (event.shiftKey) {
+                return;
+            }
+
+
+            // Enter:
+            // Gönder.
+            event.preventDefault();
+
+            event.stopPropagation();
+
+
+            if (sending) {
+                return;
+            }
+
+
+            const text =
+                input.value.trim();
+
+            if (!text) {
+                return;
+            }
+
+
+            input.value = "";
+
+            sendToAI(text);
+
+        }
+    );
+
+}
+
+
+// ============================================================
+// GÖNDER BUTONU
+// ============================================================
+
+if (sendButton) {
+
+    sendButton.addEventListener(
+        "click",
+        event => {
+
+            event.preventDefault();
+
+            event.stopPropagation();
+
+
+            if (sending) {
+                return;
+            }
+
+
+            const text =
+                input.value.trim();
+
+            if (!text) {
+                input.focus();
+                return;
+            }
+
+
+            input.value = "";
+
+            sendToAI(text);
+
+        }
+    );
+
+}
+
+
+// ============================================================
+// YENİ SOHBET
+// ============================================================
+
+if (newChatButton) {
+
+    newChatButton.addEventListener(
+        "click",
+        event => {
+
+            event.preventDefault();
+
+            startNewChat();
+
+        }
+    );
+
+}
+
+
+// ============================================================
+// BAŞLANGIÇ
+// ============================================================
+
+connectPromptButtons();
+
+resetSendButton();
