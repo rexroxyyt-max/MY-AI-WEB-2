@@ -6,142 +6,152 @@ const modeSelect = document.getElementById("mode");
 const historyBox = document.getElementById("history");
 const newChatButton = document.getElementById("newChat");
 
-let chatHistory = [];
+const STORAGE_KEY = "myai_chats_v1";
 
+let chats = loadChats();
+let currentChatId = null;
+let sending = false;
 
-// ============================================================
-// GÜVENLİ HTML
-// ============================================================
-
-function escapeHtml(text) {
-    const div = document.createElement("div");
-    div.textContent = String(text);
-    return div.innerHTML;
-}
-
-
-// ============================================================
-// MESAJ EKLE
-// ============================================================
-
-function addMessage(role, text) {
-
-    const welcome = document.getElementById("welcome");
-
-    if (welcome) {
-        welcome.remove();
-    }
-
-    const message = document.createElement("div");
-
-    message.className =
-        role === "user"
-            ? "message user"
-            : "message ai";
-
-    message.innerHTML = `
-        <div class="message-title">
-            ${role === "user" ? "You" : "⚡ MY AI"}
-        </div>
-
-        <div class="message-content">
-            ${escapeHtml(text).replace(/\n/g, "<br>")}
-        </div>
-    `;
-
-    messages.appendChild(message);
-
-    messages.scrollTop =
-        messages.scrollHeight;
-}
-
-
-// ============================================================
-// LOADING
-// ============================================================
-
-function showLoading() {
-
-    const loading = document.createElement("div");
-
-    loading.id = "ai-loading";
-
-    loading.className =
-        "message ai";
-
-    loading.innerHTML = `
-        <div class="message-title">
-            ⚡ MY AI
-        </div>
-
-        <div class="message-content">
-            Düşünüyor...
-        </div>
-    `;
-
-    messages.appendChild(loading);
-
-    messages.scrollTop =
-        messages.scrollHeight;
-}
-
-
-function hideLoading() {
-
-    const loading =
-        document.getElementById("ai-loading");
-
-    if (loading) {
-        loading.remove();
+function loadChats() {
+    try {
+        const raw = localStorage.getItem(STORAGE_KEY);
+        const parsed = raw ? JSON.parse(raw) : [];
+        return Array.isArray(parsed) ? parsed : [];
+    } catch {
+        return [];
     }
 }
 
+function saveChats() {
+    localStorage.setItem(
+        STORAGE_KEY,
+        JSON.stringify(chats)
+    );
+}
 
-// ============================================================
-// SON SOHBET
-// ============================================================
+function getCurrentChat() {
+    return chats.find(
+        chat => chat.id === currentChatId
+    );
+}
 
-function addHistory(text) {
+function createChat() {
+    const chat = {
+        id:
+            Date.now().toString() +
+            Math.random().toString(16).slice(2),
+        title: "Yeni sohbet",
+        messages: [],
+        createdAt: Date.now(),
+        updatedAt: Date.now()
+    };
 
-    const item =
-        document.createElement("div");
+    chats.push(chat);
+    currentChatId = chat.id;
 
-    item.className =
-        "history-item";
+    saveChats();
+    renderHistory();
+    renderChat();
 
-    item.textContent =
-        text.length > 42
-            ? text.slice(0, 42) + "..."
-            : text;
+    return chat;
+}
 
-    item.addEventListener(
-        "click",
-        () => {
-            input.focus();
-        }
+function deleteChat(id) {
+    chats = chats.filter(
+        chat => chat.id !== id
     );
 
-    historyBox.prepend(item);
+    saveChats();
+
+    if (currentChatId === id) {
+        if (chats.length > 0) {
+            const latest =
+                [...chats].sort(
+                    (a, b) =>
+                        b.updatedAt - a.updatedAt
+                )[0];
+
+            currentChatId = latest.id;
+            renderChat();
+        } else {
+            createChat();
+        }
+    }
+
+    renderHistory();
 }
 
+function renderHistory() {
+    historyBox.innerHTML = "";
 
-// ============================================================
-// YENİ SOHBET
-// ============================================================
+    const sorted =
+        [...chats].sort(
+            (a, b) =>
+                b.updatedAt - a.updatedAt
+        );
 
-function startNewChat() {
+    for (const chat of sorted) {
+        const row =
+            document.createElement("div");
 
-    chatHistory = [];
+        row.className =
+            "history-item" +
+            (
+                chat.id === currentChatId
+                    ? " active"
+                    : ""
+            );
 
+        const title =
+            document.createElement("span");
+
+        title.textContent =
+            chat.title || "Yeni sohbet";
+
+        const deleteButton =
+            document.createElement("button");
+
+        deleteButton.type = "button";
+        deleteButton.textContent = "×";
+
+        deleteButton.title =
+            "Sohbeti sil";
+
+        deleteButton.className =
+            "history-delete";
+
+        deleteButton.addEventListener(
+            "click",
+            event => {
+                event.stopPropagation();
+
+                deleteChat(chat.id);
+            }
+        );
+
+        row.appendChild(title);
+        row.appendChild(deleteButton);
+
+        row.addEventListener(
+            "click",
+            () => {
+                currentChatId = chat.id;
+
+                renderHistory();
+                renderChat();
+
+                input.focus();
+            }
+        );
+
+        historyBox.appendChild(row);
+    }
+}
+
+function renderWelcome() {
     messages.innerHTML = `
-        <div
-            class="welcome"
-            id="welcome"
-        >
-
-            <div class="welcome-logo">
-                ⚡
-            </div>
+        <div class="welcome" id="welcome">
+            <div class="welcome-logo">⚡</div>
 
             <h1>
                 What can I help you with?
@@ -153,7 +163,6 @@ function startNewChat() {
             </p>
 
             <div class="prompts">
-
                 <button
                     type="button"
                     data-prompt="Bana bir matematik sorusu sor."
@@ -181,102 +190,180 @@ function startNewChat() {
                 >
                     🔬 Research
                 </button>
-
             </div>
-
         </div>
     `;
 
-    historyBox.innerHTML = "";
-
     connectPromptButtons();
-
-    input.value = "";
-
-    input.focus();
 }
 
+function renderChat() {
+    const chat = getCurrentChat();
 
-// ============================================================
-// HIZLI PROMPTLAR
-// ============================================================
+    if (!chat || chat.messages.length === 0) {
+        renderWelcome();
+        return;
+    }
 
-function connectPromptButtons() {
+    messages.innerHTML = "";
 
+    for (const message of chat.messages) {
+        renderMessage(
+            message.role,
+            message.content
+        );
+    }
+
+    messages.scrollTop =
+        messages.scrollHeight;
+}
+
+function renderMessage(role, content) {
+    const element =
+        document.createElement("div");
+
+    element.className =
+        role === "user"
+            ? "message user"
+            : "message ai";
+
+    element.innerHTML = `
+        <div class="message-title">
+            ${role === "user"
+                ? "You"
+                : "⚡ MY AI"}
+        </div>
+
+        <div class="message-content">
+            ${escapeHtml(content)
+                .replace(/\n/g, "<br>")}
+        </div>
+    `;
+
+    messages.appendChild(element);
+}
+
+function escapeHtml(text) {
+    const div =
+        document.createElement("div");
+
+    div.textContent =
+        String(text);
+
+    return div.innerHTML;
+}
+
+function addMessage(role, content) {
+    const chat = getCurrentChat();
+
+    if (!chat) return;
+
+    chat.messages.push({
+        role,
+        content
+    });
+
+    chat.updatedAt = Date.now();
+
+    if (
+        role === "user" &&
+        chat.title === "Yeni sohbet"
+    ) {
+        chat.title =
+            content.length > 36
+                ? content.slice(0, 36) + "..."
+                : content;
+    }
+
+    saveChats();
+
+    renderMessage(
+        role,
+        content
+    );
+
+    renderHistory();
+
+    messages.scrollTop =
+        messages.scrollHeight;
+}
+
+function showLoading() {
+    const loading =
+        document.createElement("div");
+
+    loading.id =
+        "ai-loading";
+
+    loading.className =
+        "message ai";
+
+    loading.innerHTML = `
+        <div class="message-title">
+            ⚡ MY AI
+        </div>
+
+        <div class="message-content">
+            Düşünüyor...
+        </div>
+    `;
+
+    messages.appendChild(loading);
+
+    messages.scrollTop =
+        messages.scrollHeight;
+}
+
+function hideLoading() {
     document
-        .querySelectorAll("[data-prompt]")
-        .forEach(button => {
-
-            button.addEventListener(
-                "click",
-                () => {
-
-                    input.value =
-                        button.dataset.prompt;
-
-                    input.focus();
-
-                }
-            );
-
-        });
-
+        .getElementById(
+            "ai-loading"
+        )
+        ?.remove();
 }
-
-
-// ============================================================
-// AI'YA SOR
-// ============================================================
 
 async function sendToAI(text) {
+    if (sending) return;
+
+    let chat = getCurrentChat();
+
+    if (!chat) {
+        chat = createChat();
+    }
 
     addMessage(
         "user",
         text
     );
 
-    chatHistory.push({
-        role: "user",
-        content: text
-    });
-
-    addHistory(text);
-
     showLoading();
 
+    sending = true;
     sendButton.disabled = true;
-
-    sendButton.textContent =
-        "...";
+    sendButton.textContent = "...";
 
     try {
-
         const response =
-            await fetch(
-                "/api/chat",
-                {
-                    method: "POST",
-
-                    headers: {
-                        "Content-Type":
-                            "application/json"
-                    },
-
-                    body: JSON.stringify({
-                        message: text,
-
-                        history:
-                            chatHistory.slice(-20),
-
-                        mode:
-                            modeSelect.value
-                    })
-                }
-            );
+            await fetch("/api/chat", {
+                method: "POST",
+                headers: {
+                    "Content-Type":
+                        "application/json"
+                },
+                body: JSON.stringify({
+                    message: text,
+                    history:
+                        chat.messages
+                            .slice(-20),
+                    mode:
+                        modeSelect.value
+                })
+            });
 
         const contentType =
-            response.headers
-                .get("content-type") || "";
+            response.headers.get(
+                "content-type"
+            ) || "";
 
         let data;
 
@@ -285,28 +372,23 @@ async function sendToAI(text) {
                 "application/json"
             )
         ) {
-
             data =
                 await response.json();
-
         } else {
-
             const raw =
                 await response.text();
 
             throw new Error(
-                raw || "Sunucudan geçersiz cevap geldi."
+                raw ||
+                "Sunucudan geçersiz cevap geldi."
             );
-
         }
 
         if (!response.ok) {
-
             throw new Error(
                 data.error ||
                 `HTTP ${response.status}`
             );
-
         }
 
         hideLoading();
@@ -316,101 +398,89 @@ async function sendToAI(text) {
             data.answer
         );
 
-        chatHistory.push({
-            role: "assistant",
-            content: data.answer
-        });
-
     } catch (error) {
-
         hideLoading();
 
         addMessage(
             "assistant",
-            "❌ " + error.message
+            "❌ " +
+            (
+                error instanceof Error
+                    ? error.message
+                    : "Bilinmeyen hata."
+            )
         );
-
-        console.error(
-            "MY AI ERROR:",
-            error
-        );
-
     } finally {
-
-        sendButton.disabled =
-            false;
-
-        sendButton.textContent =
-            "↑";
-
+        sending = false;
+        sendButton.disabled = false;
+        sendButton.textContent = "↑";
         input.focus();
-
     }
 }
 
+function startNewChat() {
+    createChat();
+    input.value = "";
+    input.focus();
+}
 
-// ============================================================
-// FORM
-// ============================================================
+function connectPromptButtons() {
+    document
+        .querySelectorAll("[data-prompt]")
+        .forEach(button => {
+            button.onclick = () => {
+                input.value =
+                    button.dataset.prompt;
+
+                input.focus();
+            };
+        });
+}
 
 form.addEventListener(
     "submit",
     event => {
-
         event.preventDefault();
 
         const text =
             input.value.trim();
 
-        if (!text) {
-            return;
-        }
+        if (!text) return;
 
         input.value = "";
 
         sendToAI(text);
-
     }
 );
-
-
-// ============================================================
-// ENTER / SHIFT+ENTER
-// ============================================================
 
 input.addEventListener(
     "keydown",
     event => {
-
         if (
             event.key === "Enter" &&
             !event.shiftKey
         ) {
-
             event.preventDefault();
 
             form.requestSubmit();
-
         }
-
     }
 );
-
-
-// ============================================================
-// YENİ SOHBET BUTONU
-// ============================================================
 
 newChatButton.addEventListener(
     "click",
     startNewChat
 );
 
+if (chats.length === 0) {
+    createChat();
+} else {
+    currentChatId =
+        [...chats].sort(
+            (a, b) =>
+                b.updatedAt - a.updatedAt
+        )[0].id;
 
-// ============================================================
-// BAŞLANGIÇ PROMPTLARI
-// ============================================================
-
-connectPromptButtons();
-
-input.focus();
+    renderHistory();
+    renderChat();
+}
